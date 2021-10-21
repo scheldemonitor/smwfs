@@ -4,7 +4,37 @@ require(httr)
 require(sf)
 require(tidyverse)
 
-getSMdata = function(startyear, endyear, parID) {
+
+#' Retrieves abiotic data from scheldemonitor wfs
+#'
+#' @param startyear first year of requested data
+#' @param endyear last year of requested data
+#' @param parID parameter code in scheldemonitor
+#' @param datasetID dataset id in scheldemonitor, default is datasets that are supplied by RWS
+#' @return dataframe with observation data
+#' @examples
+#' parID = c(828, 833)
+#' startyear = 1998
+#' endyear = 2021
+#' nitraat <- getSMdata(startyear, endyear, parID)
+#' nitraat %>% ggplot(aes(datetime, value)) +
+#'   geom_point(aes(color = valuesign)) +
+#'   facet_wrap(~ stationname)
+#' @export
+getSMdata = function(startyear, endyear, parID, datasetID = c(588,500,479,135,1527,476)) {
+
+  if(any(!is.na(datasetID))){
+    print("you are currently searching for data in datasetID")
+    print(datasetID)
+    print("if you want to search in all datasets, choose datasetID = NA")
+    print("if you want to search in other datasets, provide a vector of ID's")
+  }
+
+# TODO check for:
+# endyear >= startyear
+# startyear and endyear <= year(today)
+# parID exists how?
+# datasetID exists - how?
 
   urllist <- structure(list(scheme = "http", hostname = "geo.vliz.be", port = NULL,
                             path = "geoserver/wfs/ows",
@@ -24,7 +54,9 @@ getSMdata = function(startyear, endyear, parID) {
   viewParams <- paste("where:obs.context+&&+ARRAY[1]+AND+standardparameterid+IN+(",
                       stringr::str_replace_all(paste(parID, collapse = ","), ",", "\\\\,"),
                       ")+",
-                      "AND+imisdatasetid+IN+(588\\,500\\,479\\,135\\,1527\\,476)+", # all RWS datasets
+                      ifelse(any(!is.na(datasetID)),
+                             paste0("AND+imisdatasetid+IN+(", paste(datasetID, collapse = "\\,"), ")+"), # all RWS datasets
+                             ""),
                       "AND+((datetime_search+BETWEEN+'", startyear, "-01-01'+AND+'", endyear, "-01-31'+))",
                       ";context:0001", ";loggedin:1", sep = "")
 
@@ -41,6 +73,33 @@ getSMdata = function(startyear, endyear, parID) {
     mutate(value = as.numeric(value))
   return(result)
 }
+
+
+delete.NULLs  <-  function(x.list){   # delete null/empty entries in a list
+  x.list[unlist(lapply(x.list, nrow) != 0)]
+}
+
+
+get_y_SMdata <- function(startyear, endyear, parID, datasetID = c(588,500,479,135,1527,476)){
+
+  yearlist <- c(startyear:endyear)
+  l <- lapply(
+    yearlist, function(x) {
+      print(paste("reading year", x))
+      getSMdata(x, x, parID)
+    }
+  )
+
+  if(length(unlist(lapply(l, nrow) == 0)) > 0) {
+    print(paste("there is no data for years:", yearlist[unlist(lapply(l, nrow) == 0)]))
+  }
+
+  lresult <- delete.NULLs(l) %>% bind_rows()
+
+  return(lresult)
+}
+
+
 
 
 # get biological occurence per aphiaid. Right now without time limit, and restricted to

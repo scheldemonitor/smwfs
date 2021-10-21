@@ -1,11 +1,18 @@
 Package: smwfs
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Helps to Read Data from the Scheldemonitor WFS
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Author: Willem Stolte, Wout van Echelpoel, Robin Nicolai
+Maintainer: The package maintainer <willem.stolte@deltares.nl>
+Description: Provides functions to build wfs url requests to retrieve data from the Scheldemonitor Geoserver
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
+Imports:
+    httr,
+    sf,
+    dplyr,
+    ggplot2
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
