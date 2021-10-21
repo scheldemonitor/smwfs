@@ -1,6 +1,6 @@
 
-
-dontrun({
+testing = F
+if(testing)({
   # load tabel met parameters
   overz_long_morf_full <- read_delim("data/overz_long_morf_full.csv",
                                      ";", escape_double = FALSE, trim_ws = TRUE)
