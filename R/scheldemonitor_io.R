@@ -1,8 +1,11 @@
 
+#=== info =====================================================
+# author: willem.stolte@deltares.nl
 
 require(httr)
 require(sf)
 require(tidyverse)
+require(readr)
 
 
 #' Retrieves abiotic data from scheldemonitor wfs
@@ -22,6 +25,11 @@ require(tidyverse)
 #'   facet_wrap(~ stationname)
 #' @export
 getSMdata = function(startyear, endyear, parID, datasetID = c(588,500,479,135,1527,476)) {
+
+  require(httr)
+  require(sf)
+  require(tidyverse)
+  require(readr)
 
   if(any(!is.na(datasetID))){
     print("you are currently searching for data in datasetID")
@@ -57,7 +65,7 @@ getSMdata = function(startyear, endyear, parID, datasetID = c(588,500,479,135,15
                       ifelse(any(!is.na(datasetID)),
                              paste0("AND+imisdatasetid+IN+(", paste(datasetID, collapse = "\\,"), ")+"), # all RWS datasets
                              ""),
-                      "AND+((datetime_search+BETWEEN+'", startyear, "-01-01'+AND+'", endyear, "-01-31'+))",
+                      "AND+((datetime_search+BETWEEN+'", startyear, "-01-01'+AND+'", endyear, "-12-31'+))",
                       ";context:0001", ";loggedin:1", sep = "")
 
   urllist$query$viewParams <- viewParams
@@ -75,7 +83,7 @@ getSMdata = function(startyear, endyear, parID, datasetID = c(588,500,479,135,15
 }
 
 
-delete.NULLs  <-  function(x.list){   # delete null/empty entries in a list
+delete.NULLs  <-  function(x.list){   # delete empty entries in a list
   x.list[unlist(lapply(x.list, nrow) != 0)]
 }
 
@@ -116,7 +124,8 @@ getSMoccurenceData = function(startyear, endyear, parID) {
                                          resultType = "results",
                                          viewParams = "placeholder",
                                          propertyName = "stationname,aphiaid,scientificname,observationdate,longitude,latitude,value,parametername,dataprovider,imisdatasetid,datasettitle,datafichetitle",
-                                         outputFormat = "application/json"),
+                                         # outputFormat = "application/json"),
+                                         outputFormat = "csv"),
                             params = NULL,
                             fragment = NULL,
                             username = NULL, password = NULL), class = "url")
@@ -128,7 +137,51 @@ getSMoccurenceData = function(startyear, endyear, parID) {
                       # "AND+imisdatasetid+IN+(588\\,500\\,479\\,135\\,1527\\,476)+", # all RWS datasets
                       # "AND+((datetime_search+BETWEEN+'", startyear, "-01-01'+AND+'", endyear, "-01-31'+))",
                       # ";context:0001",
-                      sep = ""
+                      ";loggedin:1", sep = ""
+  )
+
+  urllist$query$viewParams <- viewParams
+  # replace "+" signs with whitespace to be placed in url
+  # text with "+" is copied from webservice url
+  urllist$query$viewParams  <- stringr::str_replace_all(urllist$query$viewParams, '\\+', ' ')
+  downloadURL = httr::build_url(urllist)
+  result <- RETRY("GET", url = downloadURL, times = 3) %>%   # max retry attempts
+    content(., "text") %>%
+    read_csv(guess_max = 100000) %>%
+    # result <- sf::st_read(url) %>%
+    mutate(value = na_if(value, "999999999999")) %>%
+    mutate(value = as.numeric(value))
+  return(result)
+}
+
+
+getSMDataset <- function(startyear, endyear, datasetID){
+
+  urllist <- structure(list(scheme = "http", hostname = "geo.vliz.be", port = NULL,
+                            path = "geoserver/wfs/ows",
+                            query = list(service = "WFS",
+                                         version = "1.1.0",
+                                         request = "GetFeature",
+                                         typeName = "Dataportal:biotic_observations",
+                                         resultType = "results",
+                                         viewParams = "placeholder",
+                                         propertyName = "stationname,aphiaid,scientificname,observationdate,longitude,latitude,value,parametername,dataprovider,imisdatasetid,datasettitle,datafichetitle",
+                                         # outputFormat = "application/json"),
+                                         outputFormat = "csv"),
+                            params = NULL,
+                            fragment = NULL,
+                            username = NULL, password = NULL), class = "url")
+
+  viewParams <- paste("where:obs.context+&&+ARRAY[1]+AND+",
+
+                      # stringr::str_replace_all(paste(parID, collapse = ","), ",", "\\\\,"),
+                      # ")+",
+                      "imisdatasetid+IN+(",
+                      stringr::str_replace_all(paste(datasetID, collapse = ","), ",", "\\\\,"),
+                      ")+",
+                      "AND+((datetime_search+BETWEEN+'", startyear, "-01-01'+AND+'", endyear, "-01-31'+))",
+                      # ";context:0001",
+                      ";loggedin:1", sep = ""
   )
 
   urllist$query$viewParams <- viewParams
@@ -136,9 +189,11 @@ getSMoccurenceData = function(startyear, endyear, parID) {
   # text with "+" is copied from webservice url
   urllist$query$viewParams  <- stringr::str_replace_all(urllist$query$viewParams, '\\+', ' ')
   url = httr::build_url(urllist)
-  result <- sf::st_read(url) %>%
+  result <- RETRY("GET", url = url, times = 3) %>%   # max retry attempts
+    content(., "text") %>%
+    read_csv(guess_max = 100000) %>%
+    # result <- sf::st_read(url) %>%
     mutate(value = na_if(value, "999999999999")) %>%
     mutate(value = as.numeric(value))
   return(result)
 }
-
