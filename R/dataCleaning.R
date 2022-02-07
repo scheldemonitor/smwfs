@@ -21,36 +21,20 @@ remove_outliers <- function(x, na.rm = TRUE, ...) {
   y
 }
 
-
-cleanSMdata <- function(df, checklimits = T, removeoutliers = TRUE, outliergroups){
-
-  # checks
+cleanSMdata <- function(df, checklimits = TRUE, removeoutliers = TRUE, ...){
   if(!is.data.frame(df)) stop("The input provided is not a dataframe")
   if(is.null(df$valuesign)) stop("There appears to be no column named 'valuesign'")
-
-  if(checklimits){
+  if(checklimits) {
     df <- df %>%
-      mutate(
-        value = case_when(
-          valuesign == '=' ~ value,
-          valuesign == '<' ~ 0.5 * value,
-          valuesign == '>' ~ NA_real_
-        )
-      )
+      mutate(value = case_when(
+        valuesign == "=" ~ value,
+        valuesign == "<" ~ 0.5 * value,
+        valuesign == ">" ~ NA_real_))
   }
-
-
-  if(removeoutliers){
-
-    groups <- enquo(outliergroups)
-
-    df <- df %>%
-      group_by(!!groups) %>%
-      mutate(value = remove_outliers(value))
+  if(removeoutliers) {
+    # groups <- enquo(outliergroups)
+    df <- df %>% group_by(!!! ensyms(...)) %>% mutate(value = remove_outliers(value))
   }
-
-
-
 }
 
 
