@@ -1,5 +1,8 @@
 
+
+
 testing = F
+
 if(testing)({
   # load tabel met parameters
   overz_long_morf_full <- read_delim("inst/extdata/overz_long_morf_full.csv",
@@ -14,7 +17,12 @@ if(testing)({
   startyear = 1998
   endyear = 2021
   fosfaat <- getSMdata(startyear, endyear, parID)
-  fosfaat2 <- cleanSMdata(nitraat, outliergroups = "stationname")
+  View(repair_limits(fosfaat))
+  fosfaat %>%
+    mutate(across(value, remove_outliers)) %>% View
+
+
+
   ggplot() +
     geom_point(data = fosfaat %>% filter(stationname == "Walcheren 2 km uit de kust"),
                aes(datetime, value, color = valuesign), size = 2) +
@@ -94,6 +102,7 @@ df %>% distinct(parametername)
 #=== test biotic data via datasetID (per dataset) ============================================
 
 result <- getSMDataset(2010, 2015, 479)
+result <- getSMDataset(2010, 2011, 949)
 
 result %>% distinct(datasettitle)
 result %>% distinct(parametername)
