@@ -5,7 +5,6 @@
 require(httr)
 require(sf)
 require(tidyverse)
-require(readr)
 
 
 #' Retrieves abiotic data from scheldemonitor wfs
@@ -24,12 +23,11 @@ require(readr)
 #'   geom_point(aes(color = valuesign)) +
 #'   facet_wrap(~ stationname)
 #' @export
-getSMdata = function(startyear, endyear, parID, datasetID = c(588,500,479,135,1527,476)) {
+getSMdata = function(startyear, endyear, parID, propname = NULL, datasetID = c(588,500,479,135,1527,476)) {
 
   require(httr)
   require(sf)
   require(tidyverse)
-  require(readr)
 
   if(any(!is.na(datasetID))){
     print("you are currently searching for data in datasetID")
@@ -52,7 +50,7 @@ getSMdata = function(startyear, endyear, parID, datasetID = c(588,500,479,135,15
                                          typeName = "Dataportal:abiotic_observations",
                                          resultType = "results",
                                          viewParams = "placeholder",
-                                         propertyName = "stationname,longitude,latitude,datetime,depth,parametername,valuesign,value,dataprovider,datasettitle",
+                                         propertyName = propname,
                                          # outputFormat = "application/json" to read with sf::st_read()
                                          outputFormat = "csv"),
                             params = NULL,
@@ -73,12 +71,11 @@ getSMdata = function(startyear, endyear, parID, datasetID = c(588,500,479,135,15
   # text with "+" is copied from webservice url
   urllist$query$viewParams  <- stringr::str_replace_all(urllist$query$viewParams, '\\+', ' ')
   downloadURL = httr::build_url(urllist)
-  result <- RETRY("GET", url = downloadURL, times = 3) %>%   # max retry attempts
-    content(., "text") %>%
-    read_csv(guess_max = 100000) %>%
-  # result <- sf::st_read(url) %>%
-    mutate(value = na_if(value, "999999999999")) %>%
-    mutate(value = as.numeric(value))
+  result <- httr::RETRY("GET", url = downloadURL, times = 3) %>%   # max retry attempts
+    httr::content(., "text") %>%
+    readr::read_csv(guess_max = 100000) %>%
+    dplyr::mutate(value = dplyr::na_if(value, "999999999999")) %>%
+    dplyr::mutate(value = as.numeric(value))
   return(result)
 }
 
@@ -145,17 +142,17 @@ getSMoccurenceData = function(startyear, endyear, parID) {
   # text with "+" is copied from webservice url
   urllist$query$viewParams  <- stringr::str_replace_all(urllist$query$viewParams, '\\+', ' ')
   downloadURL = httr::build_url(urllist)
-  result <- RETRY("GET", url = downloadURL, times = 3) %>%   # max retry attempts
-    content(., "text") %>%
-    read_csv(guess_max = 100000) %>%
+  result <- httr::RETRY("GET", url = downloadURL, times = 3) %>%   # max retry attempts
+    httr::content(., "text") %>%
+    readr::read_csv(guess_max = 100000) %>%
     # result <- sf::st_read(url) %>%
-    mutate(value = na_if(value, "999999999999")) %>%
-    mutate(value = as.numeric(value))
+    dplyr::mutate(value = dplyr::na_if(value, "999999999999")) %>%
+    dplyr::mutate(value = as.numeric(value))
   return(result)
 }
 
 
-getSMDataset <- function(startyear, endyear, datasetID){
+getSMDataset <- function(startyear, endyear, datasetID, propname = NULL){
 
   urllist <- structure(list(scheme = "http", hostname = "geo.vliz.be", port = NULL,
                             path = "geoserver/wfs/ows",
@@ -165,7 +162,7 @@ getSMDataset <- function(startyear, endyear, datasetID){
                                          typeName = "Dataportal:biotic_observations",
                                          resultType = "results",
                                          viewParams = "placeholder",
-                                         propertyName = NULL, #"stationname,aphiaid,scientificname,observationdate,longitude,latitude,value,parametername,parameterunit,dataprovider,imisdatasetid,datasettitle,datafichetitle",
+                                         propertyName = propname, #"stationname,aphiaid,scientificname,observationdate,longitude,latitude,value,parametername,parameterunit,dataprovider,imisdatasetid,datasettitle,datafichetitle",
                                          # outputFormat = "application/json"),
                                          outputFormat = "csv"),
                             params = NULL,
@@ -173,7 +170,6 @@ getSMDataset <- function(startyear, endyear, datasetID){
                             username = NULL, password = NULL), class = "url")
 
   viewParams <- paste("where:obs.context+&&+ARRAY[1]+AND+",
-
                       # stringr::str_replace_all(paste(parID, collapse = ","), ",", "\\\\,"),
                       # ")+",
                       "imisdatasetid+IN+(",
@@ -186,14 +182,13 @@ getSMDataset <- function(startyear, endyear, datasetID){
 
   urllist$query$viewParams <- viewParams
   # replace "+" signs with whitespace to be placed in url
-  # text with "+" is copied from webservice url
   urllist$query$viewParams  <- stringr::str_replace_all(urllist$query$viewParams, '\\+', ' ')
   url = httr::build_url(urllist)
-  result <- RETRY("GET", url = url, times = 3) %>%   # max retry attempts
-    content(., "text") %>%
-    read_csv(guess_max = 100000) %>%
+  result <- httr::RETRY("GET", url = url, times = 3) %>%   # max retry attempts
+    httr::content(., "text") %>%
+    readr::read_csv(guess_max = 100000) %>%
     # result <- sf::st_read(url) %>%
-    mutate(value = na_if(value, "999999999999")) %>%
-    mutate(value = as.numeric(value))
+    dplyr::mutate(value = dplyr::na_if(value, "999999999999")) %>%
+    dplyr::mutate(value = as.numeric(value))
   return(result)
 }
