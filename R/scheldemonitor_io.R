@@ -165,7 +165,7 @@ getSMDataset <- function(startyear, endyear, datasetID){
                                          typeName = "Dataportal:biotic_observations",
                                          resultType = "results",
                                          viewParams = "placeholder",
-                                         propertyName = "stationname,aphiaid,scientificname,observationdate,longitude,latitude,value,parametername,dataprovider,imisdatasetid,datasettitle,datafichetitle",
+                                         propertyName = NULL, #"stationname,aphiaid,scientificname,observationdate,longitude,latitude,value,parametername,parameterunit,dataprovider,imisdatasetid,datasettitle,datafichetitle",
                                          # outputFormat = "application/json"),
                                          outputFormat = "csv"),
                             params = NULL,
