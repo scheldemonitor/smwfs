@@ -76,7 +76,7 @@ getSMdata = function(startyear, endyear, parID, propname = NULL, datasetID = c(5
   result <- httr::RETRY("GET", url = downloadURL, times = 3) %>%   # max retry attempts
     httr::content(., "text") %>%
     readr::read_csv(guess_max = 100000) %>%
-    dplyr::mutate(value = dplyr::na_if(value, "999999999999")) %>%
+    dplyr::mutate(value = dplyr::na_if(as.character(value), "999999999999")) %>%
     dplyr::mutate(value = as.numeric(value))
   return(result)
 }
