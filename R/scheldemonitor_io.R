@@ -23,17 +23,19 @@ require(tidyverse)
 #'   geom_point(aes(color = valuesign)) +
 #'   facet_wrap(~ stationname)
 #' @export
-getSMdata = function(startyear, endyear, parID, propname = NULL, datasetID = c(588,500,479,135,1527,476)) {
+getSMdata = function(startyear, endyear, parID, propname = NULL, datasetID = c(588,500,479,135,1527,476), quiet = F) {
 
   require(httr)
   require(sf)
   require(tidyverse)
 
-  if(any(!is.na(datasetID))){
-    print("you are currently searching for data in datasetID")
-    print(datasetID)
-    print("if you want to search in all datasets, choose datasetID = NA")
-    print("if you want to search in other datasets, provide a vector of ID's")
+  if(!quiet){
+    if(any(!is.na(datasetID))){
+      print("you are currently searching for data in datasetID")
+      print(datasetID)
+      print("if you want to search in all datasets, choose datasetID = NA")
+      print("if you want to search in other datasets, provide a vector of ID's")
+    }
   }
 
 # TODO check for:
